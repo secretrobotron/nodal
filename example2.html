@@ -1,0 +1,319 @@
+<html>
+  <head>
+    <script>
+      window.requestAnimFrame = (function(){
+          return  window.requestAnimationFrame       || 
+                  window.webkitRequestAnimationFrame || 
+                  window.mozRequestAnimationFrame    || 
+                  window.oRequestAnimationFrame      || 
+                  window.msRequestAnimationFrame     || 
+                  function(callback, element){
+                    window.setTimeout(callback, 1000 / 60);
+                  };
+      })();
+
+      var NoProbalo = function ( options ) {
+        options = options || {};
+
+        if ( options.canvas && options.nodes && options.sampleNode ) {
+          var canvas = document.getElementById( options.canvas ),
+              nodes = document.getElementById( options.nodes ),
+              sample = document.getElementById( options.sampleNode );
+
+          if ( canvas && nodes && sample ) {
+            var rect = document.body.getClientRects()[ 0 ];
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            canvas.style.width = rect.width + "px";
+            canvas.style.height = rect.height + "px";
+            var ctx = canvas.getContext( '2d' ),
+                currentLine,
+                lines = [];
+
+            var Line = function ( startX, startY ) {
+              var endX = startX, endY = startY;
+              var oldEndX, oldEndY, oldStartX, oldStartY;
+
+              Object.defineProperty( this, "startX", {
+                get: function() {
+                  return startX;
+                },
+                set: function( val ) {
+                  startX = val;
+                }
+              }); //startX
+              Object.defineProperty( this, "startY", {
+                get: function() {
+                  return startY;
+                },
+                set: function( val ) {
+                  startY = val;
+                }
+              }); //startY
+              Object.defineProperty( this, "endX", {
+                get: function() {
+                  return endX;
+                },
+                set: function( val ) {
+                  endX = val;
+                }
+              }); //endX
+              Object.defineProperty( this, "endY", {
+                get: function() {
+                  return endY;
+                },
+                set: function( val ) {
+                  endY = val;
+                }
+              }); //endY
+
+              this.startX = startX;
+              this.startY = startY;
+
+              lines.push( this );
+              this.destroy = function() {
+                var idx = lines.indexOf( this );
+                if ( idx > -1 ) {
+                  lines.splice( idx, 1 );
+                } //if
+                this.clear();
+              }; //destroy
+
+              this.draw = function() {
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = "#000";
+                ctx.beginPath();
+                ctx.moveTo( startX, startY );
+                ctx.lineTo( endX, endY );
+                ctx.stroke();
+                oldStartX = startX;
+                oldStartY = startY;
+                oldEndX = endX;
+                oldEndY = endY;
+              }; //draw
+
+              this.clear = function() {
+                ctx.lineWidth = 10;
+                ctx.strokeStyle = "#fff";
+                ctx.beginPath();
+                ctx.moveTo( oldStartX, oldStartY );
+                ctx.lineTo( oldEndX, oldEndY );
+                ctx.stroke();
+              };
+
+            };
+
+            function renderLines( e, dontBother ) {
+              for ( var i=0, l=lines.length; i<l; ++i ) {
+                var line = lines[ i ];
+                lines[ i ].clear();
+              } //for
+              for ( var i=0, l=lines.length; i<l; ++i ) {
+                var line = lines[ i ];
+                lines[ i ].draw();
+              } //for
+
+              if ( !dontBother ) {
+                requestAnimFrame( renderLines );
+              }
+            }
+            renderLines();
+
+            var cloneUUID = 0;
+            var Node = function ( options ) {
+              options = options || {};
+
+              var that = this;
+ 
+              var clone = sample.cloneNode( true );
+              clone.id = cloneUUID++;
+              clone.probalo = this;
+              clone.style.visibility = "visible";
+
+              var titleDivs = clone.getElementsByClassName( 'node-title' );
+              if ( options.title && titleDivs.length > 0 ) {
+                titleDivs[ 0 ].innerHTML = options.title;
+              } //if
+
+              nodes.appendChild( clone );
+              if ( options.left ) {
+                clone.style.left = options.left + "px";
+              }
+              else {
+                clone.style.left = rect.width/2 + "px";
+              }
+              if ( options.top ) {
+                clone.style.top = options.top + "px";
+              }
+              else {
+                clone.style.top = rect.height/2 + "px";
+              }
+
+              var lineStarts = [], lineEnds = [];
+              this.attachLine = function( line, point ) {
+                if ( point === "end" ) {
+                  lineEnds.push( line );
+                  line.endX = clone.offsetLeft;
+                  line.endY = clone.offsetTop;
+                }
+                else {
+                  lineStarts.push( line );
+                  line.startX = clone.offsetLeft;
+                  line.startY = clone.offsetTop;
+                } //if
+              };
+
+              this.adjustLines = function() {
+                for ( var i=0, l=lineStarts.length; i<l; ++i ) {
+                  lineStarts[ i ].startX = clone.offsetLeft;
+                  lineStarts[ i ].startY = clone.offsetTop;
+                } //for
+                for ( var i=0, l=lineEnds.length; i<l; ++i ) {
+                  lineEnds[ i ].endX = clone.offsetLeft;
+                  lineEnds[ i ].endY = clone.offsetTop;
+                } //for
+              }; //adjustLines
+
+              var cloneW = clone.offsetWidth,
+                  cloneH = clone.offsetHeight;
+              clone.addEventListener( 'mousedown', function( e ) {
+                var hoverNode;
+                if ( e.ctrlKey ) {
+                  var l = new Line( e.clientX, e.clientY );
+                  function move ( e ) {
+                    l.endX = e.clientX;
+                    l.endY = e.clientY;
+                    if ( e.target.probalo ) {
+                      hoverNode = e.target.probalo;
+                    }
+                    else {
+                      hoverNode = undefined;
+                    }
+                  }
+                  function stop ( e ) {
+                    if ( hoverNode && hoverNode !== clone  ) {
+                      that.attachLine( l, "start" );
+                      hoverNode.attachLine( l, "end" );
+                    }
+                    else {
+                      l.destroy();
+                    }
+                    document.removeEventListener( 'mouseup', stop, false );
+                    document.removeEventListener( 'mousemove', move, false ); 
+                  }
+                  document.addEventListener( 'mouseup', stop, false );
+                  document.addEventListener( 'mousemove', move, false );
+
+                }
+                else {
+                  var xofs = e.clientX - clone.offsetLeft - cloneW/2,
+                      yofs = e.clientY - clone.offsetTop - cloneH/2;
+                  function move ( e ) {
+                    clone.style.left = ( e.clientX - xofs ) + "px";
+                    clone.style.top = ( e.clientY - yofs ) + "px";
+                    that.adjustLines();
+                    renderLines( undefined, true );
+                  }
+                  function stop ( e ) {
+                    document.removeEventListener( 'mouseup', stop, false );
+                    document.removeEventListener( 'mousemove', move, false ); 
+                  }
+                  document.addEventListener( 'mouseup', stop, false );
+                  document.addEventListener( 'mousemove', move, false );
+                } //if
+              }, false );
+            };
+
+            this.createNode = function( options ) {
+              var n = new Node( options );
+              return n;
+            }; //createNode
+
+          } //if
+        } //if
+      };
+
+      document.addEventListener( 'DOMContentLoaded', function( e ) {
+        var np = new NoProbalo( { nodes: 'layer-nodes', canvas: 'main-canvas', sampleNode: 'sample-node' } );
+        np.createNode({
+          title: "Beep"
+        });
+        np.createNode({
+          title: "Boop",
+          left: 150,
+          top: 150,
+        });
+
+        document.addEventListener('click', function( e ) {
+          if ( e.shiftKey ) {
+            np.createNode({
+              title: "Node" + Math.random(),
+              left: e.clientX,
+              top: e.clientY
+            });
+          } //if
+        }, false );
+
+      }, false );
+    </script>
+    <style>
+      html, body {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+      }
+      
+      #layer-nodes {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        top: 0px;
+        left: 0px;
+      }
+
+      #layer-canvas {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        top: 0px;
+        left: 0px;
+      }
+
+      .node {
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -o-user-select: none;
+        user-select: none;
+        position: absolute;
+        border: 1px solid #000;
+        width: 100px;
+        height: 150px;
+        z-index: 20;
+        margin-left: -50px;
+        margin-top: -75px;
+      }
+
+      .node-title {
+        text-align: center;
+        width: 100%;
+        border-bottom: 1px solid #aaa;
+        cursor: pointer;
+      }
+
+      #sample-node {
+        visibility: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="layer-nodes"></div>
+    <div id="layer-canvas"><canvas id="main-canvas"></canvas></div>
+    <div id="sample-node" class="node">
+      <div class="node-title">Boop</div>
+      <div class="node-content"></div>
+    </div>
+  </body>
+</html>
