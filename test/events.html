@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+  <head>
+    <script type="text/javascript" src="../lib/require.js"></script>
+    <script type="text/javascript">
+      require( [ "../js/eventmanager.js" ], function( EventManager ) {
+        var obj1 = {
+              test: function() {
+                obj1.dispatch( "test", { test: "test1" } );
+              }
+            },
+            obj2 = {
+              test: function() {
+                obj2.dispatch( "test", { test: "test2" } );
+              }
+            },
+            em1 = new EventManager( obj1 ),
+            em2 = new EventManager( obj2 );
+
+        obj1.listen( "test", function( e ) {
+          console.log( "test1 fired" );
+        });
+
+        obj2.listen( "test", function( e ) {
+          console.log( "test2 fired" );
+        });
+
+        obj1.test();
+
+        setTimeout( function() {
+          obj2.test();
+        }, 500 );
+
+      });
+    </script>
+  </head>
+  <body>
+  </body>
+</html>

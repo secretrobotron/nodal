@@ -13,7 +13,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 (function (root) {
 
-  define( [ "./submodule" ], function( submodule ) {
+  define( [ "./context" ], function( Context ) {
 
     var nodal = function( callback ) {
 
@@ -23,18 +23,27 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
         callback();
       } //if
 
+      this.create = function( options ) {
+        return new Context( options );
+      }; //create
+
     }; //nodal
+
+    var waiting;
+    if( root.nodal && root.nodal.__waiting ) {
+      waiting = root.nodal.__waiting();
+      delete nodal.__waiting;
+    } //if
+    root.nodal = nodal;
 
     // In dev, there may be calls that are waiting for the implementation to
     // show up. Handle them now.
-    if ( root.nodal && root.nodal.__waiting ) {
-      for ( var i=0, l=root.nodal.__waiting.length; i<l; ++i ) {
-        nodal.apply( {}, root.nodal.__waiting[ i ] );
+    if ( waiting ) {
+      for ( var i=0, l=waiting.length; i<l; ++i ) {
+        nodal.apply( {}, waiting[ i ] );
       }
-      delete nodal._waiting;
     } //if
 
-    root.nodal = nodal;
     return nodal;
 
   }); //define
