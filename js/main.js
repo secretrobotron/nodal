@@ -20,24 +20,22 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
       // Add your init code here.
 
       if( callback ) {
-        callback();
+        callback( this );
       } //if
-
-      this.create = function( options ) {
-        return new Context( options );
-      }; //create
 
     }; //nodal
 
+    // In dev, there may be calls that are waiting for the implementation to
+    // show up. Handle them now, but replace root.nodal before executing.
     var waiting;
     if( root.nodal && root.nodal.__waiting ) {
-      waiting = root.nodal.__waiting();
+      waiting = root.nodal.__waiting;
       delete nodal.__waiting;
     } //if
+
+    nodal.Context = Context;
     root.nodal = nodal;
 
-    // In dev, there may be calls that are waiting for the implementation to
-    // show up. Handle them now.
     if ( waiting ) {
       for ( var i=0, l=waiting.length; i<l; ++i ) {
         nodal.apply( {}, waiting[ i ] );

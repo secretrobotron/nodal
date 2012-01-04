@@ -1,4 +1,4 @@
-define( [], function() {
+define( [], function(){
 
   var requestAnimFrame = (function(){
       return  window.requestAnimationFrame       || 
@@ -11,18 +11,18 @@ define( [], function() {
               };
   })();
 
-  function Canvas( canvasElement ) {
-    var _canvasElement = canvasElement
-        _ctx = canvasElement.getContext( "2d" )
-        _stopFlag = false;
+  var Canvas = function( canvasElement ){
+    var _ctx = canvasElement.getContext( "2d" ),
+        _stopFlag = false,
+        _lines = [];
 
     function draw() {
       ctx.clearRect( 0, 0, nodeCanvas.width, nodeCanvas.height );
       ctx.strokeStyle = "#000";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      for ( var i=0, l=lines.length; i<l; ++i ) {
-        lines[ i ].draw();
+      for ( var i=0, l=_lines.length; i<l; ++i ) {
+        _lines[ i ].draw();
       } //for
       ctx.stroke();
       if( !_stopFlag ) {
@@ -30,16 +30,29 @@ define( [], function() {
       }
     } //draw
 
-    this.start = function() {
+    this.start = function(){
       _stopFlag = false;
       requestAnimFrame( draw, nodeCanvas );
     }; //start
 
-    this.stop = function() {
+    this.stop = function(){
       _stopFlag = true;
     }; //stop
 
-  } //Canvas
+    this.addLine = function( line ){
+      _lines.push( line );
+      return line;
+    }; //addLine
+
+    this.removeLine = function( line ){
+      var idx = _lines.indexOf( line );
+      if( idx > -1 ){
+        _lines.splice( idx, 1 );
+      } //if
+      return line;
+    }; //removeLine
+
+  };
 
   return Canvas;
 

@@ -1,8 +1,24 @@
-define( [ "./connection" ], function( Connection ){
+define( [ "./anchor" ], function( Connection ){
+
+  var __id = 0;
+
+  var Node = function( nodeOptions ) {
+    var _id = __id++,
+        _locked = false;
+
+    Object.defineProperties( this, {
+      locked: {
+        get: function() { return _locked; },
+        set: function( val ) {
+          _locked = !!val;
+        }
+      }
+    });
+  }; //Node
 
   var Node = function( nodeOptions ) {
 
-    var id = nodes.length,
+    var _id = __id++,
         xPos = 0,
         yPos = 0,
         locked = false,
